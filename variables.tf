@@ -1,3 +1,11 @@
+#Environment Name
+variable "environment" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+  default     = "dev"
+  
+}
+
 # VPC Name
 variable "vpc_name" {
   description = "Name for the main VPC"
@@ -25,6 +33,28 @@ variable "private_subnet_db_name" {
   type        = string
   default     = "private-subnet-db"
 }
+
+variable "s3_buckets_map" {
+  description = "Mapping of logical bucket names to real bucket names"
+  type = map(string)
+  default = {
+    bucket1 = "temp-image-bucket-12345"   # TEMP bucket → lifecycle will be applied
+    bucket2 = "final-image-bucket-12345"  # FINAL bucket → no lifecycle
+  }
+}
+
+variable "kafka_cluster_name" {
+  description = "Name of the Kafka Cluster"
+  type        = string
+  default     = "mini-ai-kafka-cluster"
+}
+
+variable "kafka_broker_count" {
+  description = "Number of Kafka Broker Nodes"
+  type        = number
+  default     = 2 # You can set to 3 if you want high availability
+}
+
 
 variable "private_subnet_kafka_name" {
   description = "Name for the private subnet for Kafka"
@@ -106,86 +136,4 @@ variable "kafka_sg_name" {
   description = "Name of AI Detection Security Group"
   type        = string
   default     = "kafka-sg-name"
-}
-
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-# S3 BUCKETS VARIABLE → using MAP so you can assign logical names and real bucket names
-# ---------------------------------------------------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------------------------------------------------
-# S3 BUCKETS CONFIGURATION
-# This section creates the two S3 buckets used in the architecture:
-# - bucket1 (TEMP): receives raw image uploads from the frontend/backend, triggers processing, auto-deletes
-# - bucket2 (FINAL): stores processed images and AI detection results
-# Both buckets use:
-# - Encryption enabled
-# ---------------------------------------------------------------------------------------------------------------------
-
-# Create Both Buckets using for_each
-resource "aws_s3_bucket" "buckets" {
-  for_each = var.s3_buckets_map
-
-  bucket = each.value
-
-  tags = {
-    Name        = each.value
-    Environment = var.environment
-  }
-}
-
-
-# Apply encryption to all buckets
-resource "aws_s3_bucket_server_side_encryption_configuration" "buckets_sse" {
-  for_each = aws_s3_bucket.buckets
-
-  bucket = each.value.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-# Apply Lifecycle Rule to TEMP Bucket Only (bucket1)
-resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
-  for_each = {for k, v in awaws_s3_bucket.buckets: k => v if k == "bucket1"}
-
-  bucket = each.value.id
-
-  rule {
-    id     = "AutoDeleteTempImages"
-    status = "Enabled"
-
-    expiration {
-      days = 1  # Automatically delete objects older than 1 day
-    }
-  }
-}
-
-
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-  default     = "dev"
-
-}
-
-
-variable "kafka_cluster_name" {
-  description = "Name of the Kafka Cluster"
-  type        = string
-  default     = "mini-ai-kafka-cluster"
-}
-
-variable "kafka_broker_count" {
-  description = "Number of Kafka Broker Nodes"
-  type        = number
-  default     = 2 # You can set to 3 if you want high availability
-}
-variable "kafka_sg_id" {
-  description = "ID of the Kafka Security Group"
-  type        = string
-  default     = ""
 }

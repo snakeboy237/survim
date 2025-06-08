@@ -41,6 +41,25 @@ resource "aws_eks_fargate_profile" "ai_detection_profile" {
   }
 }
 
+resource "aws_eks_fargate_profile" "frontend" {
+  cluster_name           = aws_eks_cluster.main_eks.name
+  fargate_profile_name   = "frontend-profile"
+  pod_execution_role_arn = aws_iam_role.eks_fargate_pod_role.arn
+
+  subnet_ids = [
+    aws_subnet.public_subnet.id
+  ]
+
+  selector {
+    namespace = "frontend"
+  }
+
+  tags = {
+    Name = "${var.environment}-frontend-profile"
+  }
+}
+
+
 # Generic Fargate Profile
 resource "aws_eks_fargate_profile" "generic_profile" {
   cluster_name           = aws_eks_cluster.main_eks.name
