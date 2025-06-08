@@ -137,3 +137,21 @@ variable "kafka_sg_name" {
   type        = string
   default     = "kafka-sg-name"
 }
+
+variable "kafka_sg_id" {
+  description = "Security Group ID for MSK cluster"
+  type        = string
+}
+
+
+variable "aws_region" {
+  description = "AWS region to deploy resources"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "aws_profile" {
+  description = "AWS CLI named profile to use"
+  type        = string
+  default     = "default"
+}
