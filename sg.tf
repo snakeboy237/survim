@@ -176,3 +176,34 @@ resource "aws_security_group" "ai_sg" {
     Name = var.ai_sg_name
   }
 }
+
+# ---------------------------------------------------------------------------------------------------------------------
+# EKS CLUSTER SECURITY GROUP
+# Allows required traffic to the EKS cluster control plane
+# ---------------------------------------------------------------------------------------------------------------------
+
+resource "aws_security_group" "eks_cluster_sg" {
+  name        = "${var.environment}-eks-cluster-sg"
+  description = "Security group for EKS cluster"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  # Allow all traffic within the cluster nodes and EKS control plane
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/16"] # Your VPC range → cluster internal traffic
+  }
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.environment}-eks-cluster-sg"
+  }
+}

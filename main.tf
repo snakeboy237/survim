@@ -66,6 +66,24 @@ resource "aws_subnet" "private_subnet_db" {
   }
 }
 
+resource "aws_subnet" "private_subnet_kafka" {
+  vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
+  cidr_block = "10.0.4.0/24"        # Defines the IP address range for this subnet
+
+  tags = {
+    Name = var.private_subnet_kafka_name
+  }
+}
+
+resource "aws_subnet" "private_subnet_backendApi" {
+  vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
+  cidr_block = "10.0.5.0/24"        # Defines the IP address range for this subnet
+
+  tags = {
+    Name = var.private_subnet_backendApi_name
+  }
+}
+
 # Create Internet Gateway
 # This allows resources in the public subnet to access the internet
 resource "aws_internet_gateway" "igw" {
@@ -144,4 +162,17 @@ resource "aws_route_table_association" "private_subnet_ai_assoc" {
 resource "aws_route_table_association" "private_subnet_db_assoc" {
   subnet_id = aws_subnet.private_subnet_db.id
   route_table_id = aws_route_table.private_rt.id 
+}
+
+# Associate Private Route Table to Kafka Private Subnet
+resource "aws_route_table_association" "private_subnet_kafka_assoc" {
+  # This links the Kafka private subnet to the private route table
+  subnet_id      = aws_subnet.private_subnet_kafka.id  # The Kafka subnet to associate
+  route_table_id = aws_route_table.private_rt.id       # The route table to associate with
+}
+
+resource "aws_route_table_association" "private_subnet_backendApi_assoc" {
+  # This links the Backend API private subnet to the private route table
+  subnet_id      = aws_subnet.private_subnet_backendApi.id  # The Backend API subnet to associate
+  route_table_id = aws_route_table.private_rt.id             # The route table to associate with
 }
