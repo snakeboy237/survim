@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const AWS = require('aws-sdk');
 const s3Client = require('./s3Client');
+require('dotenv').config();
 
 const app = express();
 const port = 3000;
