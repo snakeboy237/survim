@@ -16,7 +16,9 @@ resource "aws_msk_cluster" "kafka_cluster" {
     instance_type = "kafka.m5.large"
 
     client_subnets = [
-      aws_subnet.private_subnet_kafka.id
+      aws_subnet.private_subnet_kafka.id,
+      aws_subnet.private_subnet_db.id,
+      aws_subnet.private_subnet_ai.id
     ]
 
     security_groups = [

@@ -13,6 +13,8 @@ resource "aws_s3_bucket" "buckets" {
 
   bucket = each.value
 
+  provider = aws
+  force_destroy = true
   tags = {
     Name        = each.value
     Environment = var.environment
@@ -34,7 +36,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "buckets_sse" {
 }
 # Apply Lifecycle Rule to TEMP Bucket Only (bucket1)
 resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
-  for_each = {for k, v in awaws_s3_bucket.buckets: k => v if k == "bucket1"}
+  for_each = { for k, v in aws_s3_bucket.buckets : k => v if k == "bucket1" }
 
   bucket = each.value.id
 
@@ -42,8 +44,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
     id     = "AutoDeleteTempImages"
     status = "Enabled"
 
+    filter { # <--- REQUIRED to avoid warning
+      prefix = "" # Matches all objects
+    }
+
     expiration {
-      days = 1  # Automatically delete objects older than 1 day
+      days = 1
     }
   }
 }
+

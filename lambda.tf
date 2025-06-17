@@ -32,7 +32,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      # Allow writing logs
       {
         Effect = "Allow"
         Action = [
@@ -42,7 +41,17 @@ resource "aws_iam_role_policy" "lambda_policy" {
         ]
         Resource = "*"
       },
-      # Allow producing to Kafka
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = [
@@ -53,7 +62,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
         ]
         Resource = "*"
       },
-      # Allow reading from S3 TEMP Bucket
       {
         Effect = "Allow"
         Action = [
@@ -61,13 +69,14 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.temp_bucket.arn,
-          "${aws_s3_bucket.temp_bucket.arn}/*"
+          aws_s3_bucket.buckets["bucket1"].arn,
+          "${aws_s3_bucket.buckets["bucket1"].arn}/*"
         ]
       }
     ]
   })
 }
+
 
 # Lambda Function
 resource "aws_lambda_function" "s3_to_kafka_lambda" {
@@ -78,6 +87,7 @@ resource "aws_lambda_function" "s3_to_kafka_lambda" {
 
   filename         = "${path.module}/lambda_code/lambda.zip"
   source_code_hash = filebase64sha256("${path.module}/lambda_code/lambda.zip")
+
 
   timeout = 30
 
@@ -93,7 +103,7 @@ resource "aws_lambda_function" "s3_to_kafka_lambda" {
 
 # S3 EVENT NOTIFICATION → Trigger Lambda
 resource "aws_s3_bucket_notification" "temp_bucket_notification" {
-  bucket = aws_s3_bucket.temp_bucket.id
+  bucket = aws_s3_bucket.buckets["bucket1"].id # Replace with your bucket name
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.s3_to_kafka_lambda.arn
@@ -111,5 +121,6 @@ resource "aws_lambda_permission" "allow_s3_invoke_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.s3_to_kafka_lambda.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.buckets["bucket1"].arn  # Replace with your bucket name
+  source_arn    = "${aws_s3_bucket.buckets["bucket1"].arn}/*"
+  # Replace with your bucket name
 }

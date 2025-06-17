@@ -48,7 +48,8 @@ resource "aws_subnet" "public_subnet" {
 # This subnet will host AI/ML resources that need internet access via NAT but shouldn't be directly accessible
 resource "aws_subnet" "private_subnet_ai" {
   vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
-  cidr_block = "10.0.2.0/24"        # Defines the IP address range for this subnet
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-east-1-1b"     # Defines the availability zone for this subnet
 
   tags = {
     Name = var.private_subnet_ai_name
@@ -59,7 +60,8 @@ resource "aws_subnet" "private_subnet_ai" {
 # This subnet will host database resources that should be isolated from direct internet access
 resource "aws_subnet" "private_subnet_db" {
   vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
-  cidr_block = "10.0.3.0/24"        # Defines the IP address range for this subnet
+  cidr_block = "10.0.3.0/24"
+  availability_zone = "us-east-1a"       # Defines the availability zone for this subnet
 
   tags = {
     Name = var.private_subnet_db_name
@@ -69,6 +71,7 @@ resource "aws_subnet" "private_subnet_db" {
 resource "aws_subnet" "private_subnet_kafka" {
   vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
   cidr_block = "10.0.4.0/24"        # Defines the IP address range for this subnet
+  availability_zone = "us-east-1b"       # Defines the availability zone for this subnet
 
   tags = {
     Name = var.private_subnet_kafka_name
@@ -78,6 +81,7 @@ resource "aws_subnet" "private_subnet_kafka" {
 resource "aws_subnet" "private_subnet_backendApi" {
   vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
   cidr_block = "10.0.5.0/24"        # Defines the IP address range for this subnet
+  availability_zone = "us-east-1a"       # Defines the availability zone for this subnet
 
   tags = {
     Name = var.private_subnet_backendApi_name

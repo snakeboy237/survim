@@ -92,12 +92,14 @@ resource "aws_security_group" "lambda_sg" {
   # No ingress needed — Lambda runs in response to S3 event, not external traffic
 
   # Allow outbound traffic to Kafka (port 9092)
-  egress {
-    from_port       = 9092
-    to_port         = 9092
-    protocol        = "tcp"
-    security_groups = [aws_security_group.kafka_sg.id]
-  }
+  # Allow outbound traffic to Kafka (NO SG DEPENDENCY — just open to VPC or 0.0.0.0/0)
+egress {
+  from_port   = 9092
+  to_port     = 9092
+  protocol    = "tcp"
+  cidr_blocks = ["10.0.0.0/16"] # Your VPC CIDR → Safe
+}
+
 
   # Allow outbound traffic to S3 and other services
   egress {
@@ -119,7 +121,8 @@ resource "aws_security_group" "lambda_sg" {
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_security_group" "kafka_sg" {
   name        = var.kafka_sg_name
-  description = "Kafka SG → allows Lambda producer + AI Detection consumer"
+  description = "Kafka SG - allows Lambda producer and AI Detection consumer"
+
   vpc_id      = aws_vpc.main_vpc.id
 
   # Allow inbound traffic from Lambda + AI Detection on port 9092
@@ -153,16 +156,16 @@ resource "aws_security_group" "kafka_sg" {
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_security_group" "ai_sg" {
   name        = var.ai_sg_name
-  description = "AI Detection SG → listens to Kafka, sends to S3/DB"
+  description = "AI Detection SG - listens to Kafka, sends to S3 and DB"
   vpc_id      = aws_vpc.main_vpc.id
 
   # Allow inbound traffic from Kafka on port 9092
-  ingress {
+  /*ingress {
     from_port       = 9092
     to_port         = 9092
     protocol        = "tcp"
     security_groups = [aws_security_group.kafka_sg.id]
-  }
+  }*/
 
   # Allow outbound traffic to S3 Final Bucket, DB, and monitoring systems
   egress {
@@ -217,7 +220,7 @@ resource "aws_security_group" "eks_cluster_sg" {
 # FRONTEND WEB APP FARGATE SG
 resource "aws_security_group" "frontend_fargate_sg" {
   name        = "${var.environment}-frontend-fargate-sg"
-  description = "Frontend WebApp Fargate SG → allows inbound from ALB, outbound to internet/S3"
+  description = "Frontend WebApp Fargate SG - allows inbound from ALB, outbound to internet and S3"
   vpc_id      = aws_vpc.main_vpc.id
 
   # ALLOW INBOUND from ALB only (port 443)
@@ -244,7 +247,7 @@ resource "aws_security_group" "frontend_fargate_sg" {
 # BACKEND API FARGATE SG
 resource "aws_security_group" "backend_fargate_sg" {
   name        = "${var.environment}-backend-fargate-sg"
-  description = "Backend API Fargate SG → allows inbound from ALB, outbound to Kafka/S3/DB"
+  description = "Backend API Fargate SG  allows inbound from ALB, outbound to Kafka/S3/DB"
   vpc_id      = aws_vpc.main_vpc.id
 
   # ALLOW INBOUND from ALB only (port 443)
@@ -273,33 +276,5 @@ resource "aws_security_group" "backend_fargate_sg" {
 
   tags = {
     Name = "${var.environment}-backend-fargate-sg"
-  }
-}
-
-# AI DETECTION TOOL FARGATE SG
-# (Already defined as ai_sg — included here for completeness)
-resource "aws_security_group" "ai_sg" {
-  name        = var.ai_sg_name
-  description = "AI Detection SG → listens to Kafka, sends to S3/DB"
-  vpc_id      = aws_vpc.main_vpc.id
-
-  # ALLOW INBOUND from Kafka
-  ingress {
-    from_port       = 9092
-    to_port         = 9092
-    protocol        = "tcp"
-    security_groups = [aws_security_group.kafka_sg.id]
-  }
-
-  # ALLOW OUTBOUND to S3 final bucket + DB
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"] # S3 final bucket + DB
-  }
-
-  tags = {
-    Name = var.ai_sg_name
   }
 }

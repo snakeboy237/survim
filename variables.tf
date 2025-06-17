@@ -38,8 +38,8 @@ variable "s3_buckets_map" {
   description = "Mapping of logical bucket names to real bucket names"
   type = map(string)
   default = {
-    bucket1 = "temp-image-bucket-12345"   # TEMP bucket → lifecycle will be applied
-    bucket2 = "final-image-bucket-12345"  # FINAL bucket → no lifecycle
+    bucket1 = "my-survim-temp-image-bucket-12345"   # TEMP bucket → lifecycle will be applied
+    bucket2 = "my-survim-final-image-bucket-12345"  # FINAL bucket → no lifecycle
   }
 }
 
