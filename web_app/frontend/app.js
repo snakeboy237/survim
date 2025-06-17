@@ -1,15 +1,25 @@
 async function uploadImage() {
   const input = document.getElementById('imageInput');
   const file = input.files[0];
+  const preview = document.getElementById('preview');
+
+  if (!file) {
+    preview.innerHTML = `<p style="color:red;">Please select a file first.</p>`;
+    return;
+  }
+
   const formData = new FormData();
   formData.append('image', file);
 
-  const response = await fetch('http://YOUR-BACKEND-LOADBALANCER-URL/upload', {
-    method: 'POST',
-    body: formData
-  });
+  try {
+    const response = await fetch('http://localhost:4000/upload', {
+      method: 'POST',
+      body: formData
+    });
 
-  const data = await response.json();
-  const preview = document.getElementById('preview');
-  preview.innerHTML = `<img src="${data.url}" width="300"><p>${data.message}</p>`;
+    const resultText = await response.text();
+    preview.innerHTML = `<p>${resultText}</p>`;
+  } catch (error) {
+    preview.innerHTML = `<p style="color:red;">Upload failed. ${error}</p>`;
+  }
 }
