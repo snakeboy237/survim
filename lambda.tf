@@ -69,8 +69,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.buckets["bucket1"].arn,
-          "${aws_s3_bucket.buckets["bucket1"].arn}/*"
+          aws_s3_bucket.bucket1.arn,
+          "${aws_s3_bucket.bucket1.arn}/*"
         ]
       }
     ]
@@ -82,6 +82,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 resource "aws_lambda_function" "s3_to_kafka_lambda" {
   function_name = "${var.environment}-s3-to-kafka-lambda"
   role          = aws_iam_role.lambda_exec_role.arn
+  provider      = aws.ap_south_1
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.9"
 
@@ -96,6 +97,11 @@ resource "aws_lambda_function" "s3_to_kafka_lambda" {
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 
+  depends_on = [
+    aws_security_group.lambda_sg,
+    aws_subnet.private_subnet_kafka
+  ]
+
   tags = {
     Name = "${var.environment}-s3-to-kafka-lambda"
   }
@@ -103,7 +109,8 @@ resource "aws_lambda_function" "s3_to_kafka_lambda" {
 
 # S3 EVENT NOTIFICATION → Trigger Lambda
 resource "aws_s3_bucket_notification" "temp_bucket_notification" {
-  bucket = aws_s3_bucket.buckets["bucket1"].id # Replace with your bucket name
+  provider = aws.ap_south_1
+  bucket = aws_s3_bucket.bucket1.id # Replace with your bucket name
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.s3_to_kafka_lambda.arn
@@ -112,7 +119,7 @@ resource "aws_s3_bucket_notification" "temp_bucket_notification" {
     filter_suffix       = ""                     # Optional → e.g., ".jpg"
   }
 
-  depends_on = [aws_lambda_permission.allow_s3_invoke_lambda]
+ // depends_on = [aws_lambda_permission.allow_s3_invoke_lambda]
 }
 
 # Allow S3 to invoke Lambda
@@ -121,6 +128,6 @@ resource "aws_lambda_permission" "allow_s3_invoke_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.s3_to_kafka_lambda.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = "${aws_s3_bucket.buckets["bucket1"].arn}/*"
+  source_arn    = aws_s3_bucket.bucket1.arn
   # Replace with your bucket name
 }

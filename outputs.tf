@@ -20,11 +20,11 @@ output "private_subnet_kafka_id" {
 }
 
 output "s3_temp_bucket_name" {
-  value = aws_s3_bucket.buckets["bucket1"].bucket
+  value = aws_s3_bucket.bucket1.bucket
 }
 
 output "s3_final_bucket_name" {
-  value = aws_s3_bucket.buckets["bucket2"].bucket
+  value = aws_s3_bucket.bucket2.bucket
 }
 
 output "eks_cluster_name" {

@@ -10,15 +10,14 @@
 resource "aws_msk_cluster" "kafka_cluster" {
   cluster_name           = var.kafka_cluster_name
   kafka_version          = "3.5.1" # You can adjust to latest supported version
-  number_of_broker_nodes = 2       # You can increase to 3 for production HA
+  number_of_broker_nodes = 4       # You can increase to 3 for production HA
 
   broker_node_group_info {
     instance_type = "kafka.m5.large"
 
     client_subnets = [
       aws_subnet.private_subnet_kafka.id,
-      aws_subnet.private_subnet_db.id,
-      aws_subnet.private_subnet_ai.id
+      aws_subnet.private_subnet_db.id
     ]
 
     security_groups = [

@@ -1,11 +1,10 @@
-aws_region  = "us-east-1"
+//aws_region  = "us-east-1"
 aws_profile = "default"
 
-s3_buckets_map = {
-    bucket1 = "temp-image-bucket"   
-    bucket2 = "final-image-bucket"
-}
-environment          = "dev"
+bucket1 = "my-survim-temp-image-bucket-12345"
+bucket2 = "my-survim-final-image-bucket-12345"
+
+environment          = "devv"
 
 kafka_cluster_name = "dev-kafka-cluster"
 kafka_broker_count = 3

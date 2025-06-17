@@ -7,26 +7,34 @@
 # - Encryption enabled
 # ---------------------------------------------------------------------------------------------------------------------
 
-# Create Both Buckets using for_each
-resource "aws_s3_bucket" "buckets" {
-  for_each = var.s3_buckets_map
-
-  bucket = each.value
-
-  provider = aws
+# Create Both Buckets 
+resource "aws_s3_bucket" "bucket1" {
+  bucket   = var.bucket1
+  provider = aws.ap_south_1
   force_destroy = true
   tags = {
-    Name        = each.value
+    Name        = var.bucket1
+    Environment = var.environment
+  }
+}
+
+resource "aws_s3_bucket" "bucket2" {
+  bucket   = var.bucket2
+  provider = aws.eu_central_1
+  force_destroy = true
+  tags = {
+    Name        = var.bucket2
     Environment = var.environment
   }
 }
 
 
-# Apply encryption to all buckets
-resource "aws_s3_bucket_server_side_encryption_configuration" "buckets_sse" {
-  for_each = aws_s3_bucket.buckets
 
-  bucket = each.value.id
+# Apply encryption to all buckets
+# Encryption for bucket1
+resource "aws_s3_bucket_server_side_encryption_configuration" "bucket1_sse" {
+  provider = aws.ap_south_1
+  bucket   = aws_s3_bucket.bucket1.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -34,18 +42,30 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "buckets_sse" {
     }
   }
 }
-# Apply Lifecycle Rule to TEMP Bucket Only (bucket1)
-resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
-  for_each = { for k, v in aws_s3_bucket.buckets : k => v if k == "bucket1" }
 
-  bucket = each.value.id
+# Encryption for bucket2
+resource "aws_s3_bucket_server_side_encryption_configuration" "bucket2_sse" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.bucket2.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Lifecycle for bucket1
+resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
+  provider = aws.ap_south_1
+  bucket   = aws_s3_bucket.bucket1.id
 
   rule {
     id     = "AutoDeleteTempImages"
     status = "Enabled"
 
-    filter { # <--- REQUIRED to avoid warning
-      prefix = "" # Matches all objects
+    filter {
+      prefix = ""
     }
 
     expiration {
@@ -53,4 +73,3 @@ resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
     }
   }
 }
-

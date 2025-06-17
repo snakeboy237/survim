@@ -49,7 +49,7 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet_ai" {
   vpc_id     = aws_vpc.main_vpc.id  # Associates this subnet with our VPC
   cidr_block = "10.0.2.0/24"
-  availability_zone = "us-east-1-1b"     # Defines the availability zone for this subnet
+  availability_zone = "us-east-1b"     # Defines the availability zone for this subnet
 
   tags = {
     Name = var.private_subnet_ai_name

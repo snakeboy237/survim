@@ -34,12 +34,21 @@ variable "private_subnet_db_name" {
   default     = "private-subnet-db"
 }
 
-variable "s3_buckets_map" {
+variable "bucket1" {
   description = "Mapping of logical bucket names to real bucket names"
-  type = map(string)
+  
   default = {
-    bucket1 = "my-survim-temp-image-bucket-12345"   # TEMP bucket → lifecycle will be applied
-    bucket2 = "my-survim-final-image-bucket-12345"  # FINAL bucket → no lifecycle
+     name = "my-survim-temp-image-bucket-12345"
+     region = "ap-south-1"
+             }
+}
+
+variable "bucket2" {
+  description = "Mapping of logical bucket names to real bucket names"
+
+  default = {
+    name   = "my-survim-final-image-bucket-12345"
+    region = "eu-central-1"
   }
 }
 
@@ -144,12 +153,12 @@ variable "kafka_sg_id" {
 }
 
 
-variable "aws_region" {
+/*variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
   default     = "us-east-1"
 }
-
+*/
 variable "aws_profile" {
   description = "AWS CLI named profile to use"
   type        = string

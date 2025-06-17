@@ -1,5 +1,9 @@
 provider "aws" {
-  region  = var.aws_region
-  profile = "default" # Use the default profile or specify your profile name
+  alias  = "ap_south_1"
+  region = "ap-south-1"
+}
 
+provider "aws" {
+  alias  = "eu_central_1"
+  region = "eu-central-1"
 }

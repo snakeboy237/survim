@@ -1,7 +1,7 @@
 {
   "version": 4,
   "terraform_version": "1.11.4",
-  "serial": 309,
+  "serial": 306,
   "lineage": "a68cf595-fe15-dc6f-1336-1c4ec620568f",
   "outputs": {
     "eks_cluster_ca_certificate": {
@@ -729,7 +729,7 @@
             "bootstrap_brokers_public_tls": "",
             "bootstrap_brokers_sasl_iam": "",
             "bootstrap_brokers_sasl_scram": "",
-            "bootstrap_brokers_tls": "b-2.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094,b-3.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094,b-4.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094",
+            "bootstrap_brokers_tls": "b-1.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094,b-2.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094,b-3.devkafkacluster.378mgd.c16.kafka.us-east-1.amazonaws.com:9094",
             "bootstrap_brokers_vpc_connectivity_sasl_iam": "",
             "bootstrap_brokers_vpc_connectivity_sasl_scram": "",
             "bootstrap_brokers_vpc_connectivity_tls": "",
@@ -1855,6 +1855,68 @@
           "dependencies": [
             "aws_security_group.ai_sg",
             "aws_security_group.lambda_sg",
+            "aws_vpc.main_vpc"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "lambda_sg",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:092446241124:security-group/sg-04dfb559d91ab2589",
+            "description": "Lambda SG for Kafka producer",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              },
+              {
+                "cidr_blocks": [
+                  "10.0.0.0/16"
+                ],
+                "description": "",
+                "from_port": 9092,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 9092
+              }
+            ],
+            "id": "sg-04dfb559d91ab2589",
+            "ingress": [],
+            "name": "lambda-sg-name",
+            "name_prefix": "",
+            "owner_id": "092446241124",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Name": "lambda-sg-name"
+            },
+            "tags_all": {
+              "Name": "lambda-sg-name"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0768b65b645d7b393"
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
             "aws_vpc.main_vpc"
           ]
         }
