@@ -22,25 +22,23 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy Frontend') {
-    when {
-        changeset "**/frontend/**"
-    }
+        stage('Deploy Frontend') {
     steps {
-        dir('web_app/frontend') {
-            script {
-                // Build the image using Dockerfile in this folder
-                docker.build('ai-frontend:latest', '.')
+        script {
+            // Stop and remove old container if running
+            sh '''
+            docker stop myfrontend || true
+            docker rm myfrontend || true
+            '''
 
-                // Stop old container if exists
-                sh 'docker rm -f myfrontend || true'
-
-                // Run new container
-              //  sh 'docker run -d --name myfrontend -p 8080:80 ai-frontend:latest'
-            }
+            // Run new container from new image
+            sh '''
+            docker run -d --name myfrontend -p 8080:80 ai-frontend:latest
+            '''
         }
     }
 }
+
 
 
         stage('Run DB Migrations') {
