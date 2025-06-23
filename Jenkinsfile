@@ -22,14 +22,21 @@ pipeline {
             }
         }
 
-        stage('Build Frontend Image') {
+        stage('Build & Deploy Frontend') {
             when {
                 changeset "**/web_app/frontend/**"
             }
             steps {
                 dir('web_app/frontend') {
                     script {
+                        // Build the frontend image
                         sh 'docker build -t ai-frontend:latest .'
+
+                        // Optional: Stop old container (if running)
+                        sh 'docker rm -f myfrontend || true'
+
+                        // Deploy new container (publish on port 8080)
+                        sh 'docker run -d --name myfrontend -p 8080:80 ai-frontend:latest'
                     }
                 }
             }
