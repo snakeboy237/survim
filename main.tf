@@ -129,7 +129,7 @@ resource "aws_eip" "nat_eip" {
 }
 
 # Create NAT Gateway
-# This allows resources in private subnets to access the internet while remaining private
+# This allows resources in private subnets to access the internet while remaining private.
 resource "aws_nat_gateway" "nat_gw" {
   allocation_id = aws_eip.nat_eip.id             # Associates the Elastic IP with this NAT Gateway
   subnet_id     = aws_subnet.public_subnet.id    # Places the NAT Gateway in the public subnet
