@@ -11,7 +11,7 @@ const port = 3000;
 const TEMP_BUCKET = process.env.TEMP_BUCKET_NAME;
 const FINAL_BUCKET = process.env.FINAL_BUCKET_NAME;
 
-// Setup multer for file uploads
+// Setup multer for file uploads.
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Home page
