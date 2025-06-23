@@ -1,0 +1,11 @@
+# Use official Jenkins image with JDK 17
+FROM jenkins/jenkins:lts-jdk17
+
+# Run as root
+USER root
+
+# Install git and docker.io
+RUN apt-get update && apt-get install -y git docker.io
+
+# Set user back to Jenkins
+USER jenkins

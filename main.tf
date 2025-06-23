@@ -121,7 +121,7 @@ resource "aws_route_table_association" "public_subnet_assoc" {
 }
 
 # Allocate an Elastic IP for the NAT Gateway
-# This provides a static public IP address for the NAT Gateway
+# This provides a static public IP address for the NAT Gateway.
 resource "aws_eip" "nat_eip" {
   tags = {
     Name = var.nat_eip_name
