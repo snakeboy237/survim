@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone my Repo') {
+        stage('Clone that my Repo') {
             steps {
                 git branch: 'main', url: 'https://github.com/snakeboy237/survim'
             }
