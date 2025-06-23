@@ -36,7 +36,7 @@ pipeline {
                 sh 'docker rm -f myfrontend || true'
 
                 // Run new container
-                sh 'docker run -d --name myfrontend -p 8080:80 ai-frontend:latest'
+              //  sh 'docker run -d --name myfrontend -p 8080:80 ai-frontend:latest'
             }
         }
     }
