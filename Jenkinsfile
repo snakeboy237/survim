@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone that my Repo') {
+        stage('Clone Repo') {
             steps {
                 git branch: 'main', url: 'https://github.com/snakeboy237/survim'
             }
@@ -12,7 +12,7 @@ pipeline {
             steps {
                 dir('web_app/backend-api') {
                     script {
-                        docker.build('ai-backend:latest')
+                        docker.build('ai-backend:latest', '.')
                     }
                 }
             }
