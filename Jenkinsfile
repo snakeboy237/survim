@@ -25,16 +25,11 @@ pipeline {
                         def gitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                         def buildDate = new Date().format("yyyyMMdd-HHmm")
 
-                        echo "🚀 Building backend image..."
+                        echo "🚀 Building ${imageName}..."
                         docker.build("${imageName}:latest", '.')
 
-                        echo "🏷️ Tagging backend image..."
+                        echo "🏷️ Tagging..."
                         sh "docker tag ${imageName}:latest ${imageName}:${buildDate}-${gitSha}"
-
-                        echo "🛡️ Scanning backend image..."
-                        // Example: sh 'trivy image --severity CRITICAL,HIGH --exit-code 1 ai-backend:latest || true'
-
-                        echo "✅ Backend image build complete."
                     }
                 }
             }
@@ -49,19 +44,18 @@ pipeline {
                 script {
                     def rollbackImage = "ai-backend:rollback"
 
-                    echo "🔄 Preparing backend deploy..."
-                    sh '''
+                    sh """
+                    echo "🔄 Preparing backend rollback..."
                     if docker ps --filter "name=ai-backend" --format '{{.Names}}' | grep -w ai-backend; then
-                        echo "Saving rollback image..."
                         docker commit ai-backend ${rollbackImage}
                     fi
 
                     docker stop ai-backend || true
                     docker rm ai-backend || true
 
-                    echo "🚀 Running new backend container..."
+                    echo "🚀 Running new backend..."
                     docker run -d --name ai-backend -p 3000:3000 ai-backend:latest
-                    '''
+                    """
                 }
             }
         }
@@ -78,16 +72,11 @@ pipeline {
                         def gitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                         def buildDate = new Date().format("yyyyMMdd-HHmm")
 
-                        echo "🚀 Building frontend image..."
+                        echo "🚀 Building ${imageName}..."
                         docker.build("${imageName}:latest", '.')
 
-                        echo "🏷️ Tagging frontend image..."
+                        echo "🏷️ Tagging..."
                         sh "docker tag ${imageName}:latest ${imageName}:${buildDate}-${gitSha}"
-
-                        echo "🛡️ Scanning frontend image..."
-                        // Example: sh 'trivy image --severity CRITICAL,HIGH --exit-code 1 ai-frontend:latest || true'
-
-                        echo "✅ Frontend image build complete."
                     }
                 }
             }
@@ -101,27 +90,20 @@ pipeline {
             steps {
                 script {
                     try {
-                        echo "🔄 Tagging previous frontend image..."
-                        sh 'docker tag ai-frontend:latest ai-frontend:previous || true'
-
-                        echo "🛑 Stopping old frontend container..."
-                        sh 'docker stop myfrontend || true'
-                        sh 'docker rm myfrontend || true'
-
-                        echo "🚀 Deploying new frontend container..."
-                        sh 'docker run -d --name myfrontend -p 8080:80 ai-frontend:latest'
-
-                        echo "✅ Frontend deployed successfully."
-
+                        sh '''
+                        docker tag ai-frontend:latest ai-frontend:previous || true
+                        docker stop myfrontend || true
+                        docker rm myfrontend || true
+                        docker run -d --name myfrontend -p 8080:80 ai-frontend:latest
+                        '''
+                        echo "✅ Frontend deployed!"
                     } catch (err) {
-                        echo "❌ Frontend deployment failed — rolling back..."
-
+                        echo "❌ Frontend failed — rolling back!"
                         sh '''
                         docker stop myfrontend || true
                         docker rm myfrontend || true
                         docker run -d --name myfrontend -p 8080:80 ai-frontend:previous
                         '''
-
                         error "Frontend deployment failed and rolled back."
                     }
                 }
@@ -134,19 +116,31 @@ pipeline {
                 changeset "**/web_app/db/*.sql"
             }
             steps {
-                script {
-                    echo "⚙️ Applying database changes..."
-                    sh '''
-                    psql -h localhost -U postgres -d mydb -f web_app/db/create_tables.sql
-                    psql -h localhost -U postgres -d mydb -f web_app/db/views.sql
-                    psql -h localhost -U postgres -d mydb -f web_app/db/create_stored_procedures.sql
+                withCredentials([string(credentialsId: 'postgres-creds', variable: 'PGPASSWORD')]) {
+                    script {
+                        def dbHost = "mydb"
+                        def dbUser = "postgres"
+                        def dbName = "mydb"
+                        def backupFile = "db-backup-$(date +%Y%m%d-%H%M%S).sql"
 
-                    echo "✅ DB migrations applied."
+                        sh """
+                        echo "📦 Taking DB backup..."
+                        pg_dump -h ${dbHost} -U ${dbUser} -d ${dbName} -F c -f ${backupFile}
 
-                    echo "🔍 Verifying DB..."
-                    psql -h localhost -U postgres -d mydb -c "\\dt"
-                    psql -h localhost -U postgres -d mydb -c "SELECT * FROM images LIMIT 5;"
-                    '''
+                        echo "⚙️ Applying create_tables.sql ..."
+                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/create_tables.sql
+
+                        echo "⚙️ Applying views.sql ..."
+                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/views.sql
+
+                        echo "⚙️ Applying create_stored_procedures.sql ..."
+                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/create_stored_procedures.sql
+
+                        echo "✅ Verifying DB..."
+                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -c "\\dt"
+                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -c "SELECT * FROM images LIMIT 5;"
+                        """
+                    }
                 }
             }
         }
