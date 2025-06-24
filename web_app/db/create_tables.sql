@@ -27,4 +27,5 @@ CREATE TABLE new (
     notes TEXT
     nddotessds TEXT
     nddotessddds TEXT
+    nddotesddsddds TEXT
 );
