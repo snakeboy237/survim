@@ -1,14 +1,19 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_BUILDKIT = '1'
+    }
+
     stages {
-        stage('Clone my Repo') {
+
+        stage('Clone Repo') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/snakeboy237/survim'
+                git branch: 'main', url: 'https://github.com/snakeboy237/survim'
             }
         }
 
+        // Build Backend Image
         stage('Build Backend Image') {
             when {
                 changeset "**/web_app/backend-api/**"
@@ -16,46 +21,68 @@ pipeline {
             steps {
                 dir('web_app/backend-api') {
                     script {
-                        sh 'docker build -t ai-backend:latest .'
+                        docker.build('ai-backend:latest', '.')
                     }
                 }
             }
         }
 
-        stage('Deploy Frontend') {
-    when {
-        changeset "**/web_app/frontend/**"
-    }
-    steps {
-        script {
-            // Stop and remove old container if running
-            sh '''
-            docker stop myfrontend || true
-            docker rm myfrontend || true
-            '''
-
-            // Run new container from new image
-            sh '''
-            docker run -d --name myfrontend -p 8080:80 ai-frontend:latest
-            '''
-        }
-    }
-}
-
-
-
-
-        stage('Run DB Migrations') {
+        // Deploy Backend
+        stage('Deploy Backend') {
             when {
-                changeset "**/web_app/db/**"
+                changeset "**/web_app/backend-api/**"
             }
             steps {
-                dir('web_app/db') {
+                script {
+                    sh '''
+                    docker stop ai-backend || true
+                    docker rm ai-backend || true
+                    docker run -d --name ai-backend -p 3000:3000 ai-backend:latest
+                    '''
+                }
+            }
+        }
+
+        // Build Frontend Image
+        stage('Build Frontend Image') {
+            when {
+                changeset "**/web_app/frontend/**"
+            }
+            steps {
+                dir('web_app/frontend') {
                     script {
-                        sh 'psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f create_tables.sql'
-                        sh 'psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f views.sql'
-                        sh 'psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f create_stored_procedures.sql'
+                        docker.build('ai-frontend:latest', '.')
                     }
+                }
+            }
+        }
+
+        // Deploy Frontend
+        stage('Deploy Frontend') {
+            when {
+                changeset "**/web_app/frontend/**"
+            }
+            steps {
+                script {
+                    sh '''
+                    docker run -d --name myfrontend -p 8080:80 ai-frontend:latest
+                    '''
+                }
+            }
+        }
+
+        // Deploy DB (Run SQL)
+        stage('Deploy DB Changes') {
+            when {
+                changeset "**/web_app/db/*.sql"
+            }
+            steps {
+                script {
+                    sh '''
+                    psql -h localhost -U postgres -d mydb -f web_app/db/create_tables.sql || true
+                    psql -h localhost -U postgres -d mydb -f web_app/db/views.sql || true
+                    psql -h localhost -U postgres -d mydb -f web_app/db/create_stored_procedures.sql || true
+                    '''
                 }
             }
         }
