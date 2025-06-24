@@ -113,56 +113,51 @@ pipeline {
         // Deploy DB Changes
        stage('Deploy DB Changes') {
     when {
-        changeset "**/web_app/db/**/*.sql"
-    }
-    environment {
-        DB_USER = credentials('postgres-creds_USR')
-        DB_PASS = credentials('postgres-creds_PSW')
-        DB_NAME = 'mydb'  // if you also want this configurable, I can move it to Jenkins param
+        changeset "**/web_app/db/*.sql"
     }
     steps {
         script {
             def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
-            def gitSha = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-            def backupFile = "db-backup-${timestamp}-${gitSha}.sql"
+            def backupFile = "db-backup-${timestamp}.sql"
 
-            echo "🔄 Backing up current DB to ${backupFile} ..."
-            sh """
-            PGPASSWORD=$DB_PASS pg_dump -h localhost -U $DB_USER -d $DB_NAME -f ${backupFile}
-            """
+            withCredentials([usernamePassword(credentialsId: 'postgres-creds', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
 
-            try {
-                def sqlFiles = sh(script: "find web_app/db -type f -name '*.sql' | sort", returnStdout: true).trim().split("\n")
+                echo "🔄 Backing up current DB to ${backupFile} ..."
+                sh """
+                PGPASSWORD=$DB_PASS pg_dump -h localhost -U $DB_USER -d mydb -f ${backupFile}
+                """
 
-                echo "📋 SQL files to apply:"
-                sqlFiles.each { echo " - ${it}" }
-
-                sqlFiles.each { file ->
-                    echo "⚙️ Applying: ${file}"
+                try {
+                    // Apply DB migrations
                     sh """
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d $DB_NAME -f ${file}
+                    echo "⚙️ Applying create_tables.sql ..."
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_tables.sql
+
+                    echo "⚙️ Applying views.sql ..."
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/views.sql
+
+                    echo "⚙️ Applying create_stored_procedures.sql ..."
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_stored_procedures.sql
                     """
+
+                    // Simple test
+                    sh """
+                    echo "✅ Verifying DB deploy ..."
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "\\dt"
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "SELECT * FROM images LIMIT 5;"
+                    echo "✅ DB deploy verification completed."
+                    """
+
+                } catch (err) {
+                    echo "❌ DB deploy failed — rolling back from ${backupFile} ..."
+                    sh """
+                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f ${backupFile}
+                    """
+                    error "DB deploy failed and rolled back."
                 }
-
-                echo "✅ Verifying DB state ..."
-                sh """
-                PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d $DB_NAME -c '\\dt'
-                PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT * FROM images LIMIT 5;"
-                """
-
-                echo "✅ DB Deploy completed."
-
-            } catch (err) {
-                echo "❌ DB Deploy failed — Rolling back from ${backupFile} ..."
-                sh """
-                PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d $DB_NAME -f ${backupFile}
-                """
-                error "DB deploy failed and rollback done."
             }
         }
     }
 }
-
-
-    }
+}
 }
