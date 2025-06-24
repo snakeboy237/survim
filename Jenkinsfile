@@ -3,14 +3,13 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
-        SELENIUM_IMAGE = 'selenium/standalone-chrome'
-        SELENIUM_TEST_IMAGE = 'my-selenium-test-image'
-        ENABLE_SELENIUM_UI_TESTS = 'true'   // 👈 you can control this in Jenkins params or Git env
+        SONARQUBE_ENV = 'MySonarQube'   // 👈 Jenkins SonarQube server name
+        ENABLE_SELENIUM_UI_TESTS = 'true'
+        SELENIUM_TEST_IMAGE = 'selenium-test-image' // example name
     }
 
     stages {
 
-        // Clone
         stage('Clone Repo') {
             steps {
                 echo "📥 Checking out branch: ${env.BRANCH_NAME}"
@@ -18,7 +17,18 @@ pipeline {
             }
         }
 
-        // Build Backend Image
+        stage('Static Code Analysis - SonarQube') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "🔍 Running SonarQube analysis..."
+                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
         stage('Build Backend Image') {
             when {
                 changeset "**/web_app/backend-api/**"
@@ -40,7 +50,6 @@ pipeline {
             }
         }
 
-        // Deploy Backend
         stage('Deploy Backend') {
             when {
                 allOf {
@@ -71,7 +80,6 @@ pipeline {
             }
         }
 
-        // Build Frontend Image
         stage('Build Frontend Image') {
             when {
                 changeset "**/web_app/frontend/**"
@@ -93,7 +101,6 @@ pipeline {
             }
         }
 
-        // Deploy Frontend
         stage('Deploy Frontend') {
             when {
                 allOf {
@@ -127,37 +134,33 @@ pipeline {
             }
         }
 
-        // Run Selenium UI Tests (with best practice trigger and flag)
-    /*    stage('Run Selenium UI Tests') {
+        stage('Run Selenium UI Tests') {
             when {
                 allOf {
                     anyOf {
-            
+                        changeset "**/web_app/frontend/**"
+                        changeset "**/web_app/selenium-tests/**"
                     }
                     anyOf {
                         branch 'main'
                         branch 'develop'
                     }
                     expression {
-                        return params.ENABLE_SELENIUM_UI_TESTS == 'true'
+                        return env.ENABLE_SELENIUM_UI_TESTS == 'true'
                     }
                 }
             }
             steps {
                 script {
                     echo "🚀 Running Selenium UI tests ..."
-
                     sh '''
                     docker run --rm \
                         --network="host" \
                         -v $WORKSPACE/web_app/selenium-tests:/tests \
                         $SELENIUM_TEST_IMAGE pytest --html=report.html
                     '''
-
-                    echo "✅ Selenium UI tests completed!"
                 }
             }
-
             post {
                 always {
                     echo "📄 Publishing Selenium test report ..."
@@ -168,9 +171,8 @@ pipeline {
                     ])
                 }
             }
-        } */
+        }
 
-        // Deploy DB Changes
         stage('Deploy DB Changes') {
             when {
                 allOf {
@@ -187,33 +189,24 @@ pipeline {
                     def backupFile = "db-backup-${timestamp}.sql"
 
                     withCredentials([usernamePassword(credentialsId: 'postgres-creds', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
-
                         echo "🔄 Backing up current DB to ${backupFile} ..."
                         sh """
                         PGPASSWORD=$DB_PASS pg_dump -h localhost -U $DB_USER -d mydb -f ${backupFile}
                         """
 
                         try {
-                            // Apply DB migrations
                             sh """
-                            echo "⚙️ Applying create_tables.sql ..."
+                            echo "⚙️ Applying DB migrations ..."
                             PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_tables.sql
-
-                            echo "⚙️ Applying views.sql ..."
                             PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/views.sql
-
-                            echo "⚙️ Applying create_stored_procedures.sql ..."
                             PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_stored_procedures.sql
                             """
 
-                            // Simple test
-                            sh """
                             echo "✅ Verifying DB deploy ..."
+                            sh """
                             PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "\\dt"
                             PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "SELECT * FROM images LIMIT 5;"
-                            echo "✅ DB deploy verification completed."
                             """
-
                         } catch (err) {
                             echo "❌ DB deploy failed — rolling back from ${backupFile} ..."
                             sh """
