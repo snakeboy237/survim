@@ -65,6 +65,8 @@ pipeline {
             steps {
                 script {
                     sh '''
+                    docker stop myfrontend || true
+                    docker rm myfrontend || true
                     docker run -d --name myfrontend -p 8080:80 ai-frontend:latest
                     '''
                 }
