@@ -111,38 +111,51 @@ pipeline {
         }
 
         // Deploy DB Changes
-        stage('Deploy DB Changes') {
-            when {
-                changeset "**/web_app/db/*.sql"
-            }
-            steps {
-                withCredentials([string(credentialsId: 'postgres-creds', variable: 'PGPASSWORD')]) {
-                    script {
-                        def dbHost = "mydb"
-                        def dbUser = "postgres"
-                        def dbName = "mydb"
-                        def backupFile = "db-backup-$(date +%Y%m%d-%H%M%S).sql"
+       stage('Deploy DB Changes') {
+    when {
+        changeset "**/web_app/db/*.sql"
+    }
+    steps {
+        script {
+            def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
+            def backupFile = "db-backup-${timestamp}.sql"
 
-                        sh """
-                        echo "📦 Taking DB backup..."
-                        pg_dump -h ${dbHost} -U ${dbUser} -d ${dbName} -F c -f ${backupFile}
+            echo "🔄 Backing up current DB to ${backupFile} ..."
+            sh """
+            pg_dump -h localhost -U ${env.DB_USER} -d mydb -f ${backupFile}
+            """
 
-                        echo "⚙️ Applying create_tables.sql ..."
-                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/create_tables.sql
+            try {
+                // Apply DB migrations
+                sh '''
+                echo "⚙️ Applying create_tables.sql ..."
+                psql -h localhost -U ${DB_USER} -d mydb -f web_app/db/create_tables.sql
 
-                        echo "⚙️ Applying views.sql ..."
-                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/views.sql
+                echo "⚙️ Applying views.sql ..."
+                psql -h localhost -U ${DB_USER} -d mydb -f web_app/db/views.sql
 
-                        echo "⚙️ Applying create_stored_procedures.sql ..."
-                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -f web_app/db/create_stored_procedures.sql
+                echo "⚙️ Applying create_stored_procedures.sql ..."
+                psql -h localhost -U ${DB_USER} -d mydb -f web_app/db/create_stored_procedures.sql
+                '''
 
-                        echo "✅ Verifying DB..."
-                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -c "\\dt"
-                        psql -h ${dbHost} -U ${dbUser} -d ${dbName} -c "SELECT * FROM images LIMIT 5;"
-                        """
-                    }
-                }
+                // Simple test
+                sh '''
+                echo "✅ Verifying DB deploy ..."
+                psql -h localhost -U ${DB_USER} -d mydb -c "\\dt"
+                psql -h localhost -U ${DB_USER} -d mydb -c "SELECT * FROM images LIMIT 5;"
+                echo "✅ DB deploy verification completed."
+                '''
+
+            } catch (err) {
+                echo "❌ DB deploy failed — rolling back from ${backupFile} ..."
+                sh """
+                psql -h localhost -U ${env.DB_USER} -d mydb -f ${backupFile}
+                """
+                error "DB deploy failed and rolled back."
             }
         }
+    }
+}
+
     }
 }
