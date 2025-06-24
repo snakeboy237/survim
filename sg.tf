@@ -85,7 +85,6 @@ resource "aws_security_group" "backend_api_sg" {
 # Allows outbound traffic to Kafka (to produce messages) and S3 (optional metadata access)
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_security_group" "lambda_sg" {
-  provider    = aws.ap_south_1
   name        = var.lambda_sg_name
   description = "Lambda SG for Kafka producer"
   vpc_id      = aws_vpc.main_vpc.id
@@ -123,7 +122,6 @@ egress {
 resource "aws_security_group" "kafka_sg" {
   name        = var.kafka_sg_name
   description = "Kafka SG - allows Lambda producer and AI Detection consumer"
-
   vpc_id      = aws_vpc.main_vpc.id
 
   # Allow inbound traffic from Lambda + AI Detection on port 9092

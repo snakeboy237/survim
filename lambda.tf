@@ -82,7 +82,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 resource "aws_lambda_function" "s3_to_kafka_lambda" {
   function_name = "${var.environment}-s3-to-kafka-lambda"
   role          = aws_iam_role.lambda_exec_role.arn
-  provider      = aws.ap_south_1
+ // provider      = aws.ap_south_1
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.9"
 

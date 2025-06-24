@@ -3,13 +3,17 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
+        SELENIUM_IMAGE = 'selenium/standalone-chrome'
+        SELENIUM_TEST_IMAGE = 'my-selenium-test-image'
     }
 
     stages {
 
+        // Clone
         stage('Clone Repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/snakeboy237/survim'
+                echo "📥 Checking out branch: ${env.BRANCH_NAME}"
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/snakeboy237/survim'
             }
         }
 
@@ -38,7 +42,13 @@ pipeline {
         // Deploy Backend
         stage('Deploy Backend') {
             when {
-                changeset "**/web_app/backend-api/**"
+                allOf {
+                    changeset "**/web_app/backend-api/**"
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                    }
+                }
             }
             steps {
                 script {
@@ -85,7 +95,13 @@ pipeline {
         // Deploy Frontend
         stage('Deploy Frontend') {
             when {
-                changeset "**/web_app/frontend/**"
+                allOf {
+                    changeset "**/web_app/frontend/**"
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                    }
+                }
             }
             steps {
                 script {
@@ -110,54 +126,99 @@ pipeline {
             }
         }
 
+        // Run Selenium UI Tests (updated trigger)
+        stage('Run Selenium UI Tests') {
+            when {
+                allOf {
+                    anyOf {
+                        changeset "**/web_app/frontend/**"
+                        changeset "**/web_app/selenium-tests/**"
+                    }
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                    }
+                }
+            }
+            steps {
+                script {
+                    echo "🚀 Running Selenium UI tests ..."
+
+                    sh '''
+                    docker run --rm \
+                        --network="host" \
+                        -v $WORKSPACE/web_app/selenium-tests:/tests \
+                        $SELENIUM_TEST_IMAGE pytest --html=report.html
+                    '''
+
+                    echo "✅ Selenium UI tests completed!"
+                }
+            }
+        }
+
         // Deploy DB Changes
-       stage('Deploy DB Changes') {
-    when {
-        changeset "**/web_app/db/*.sql"
-    }
-    steps {
-        script {
-            def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
-            def backupFile = "db-backup-${timestamp}.sql"
+        stage('Deploy DB Changes') {
+            when {
+                allOf {
+                    changeset "**/web_app/db/*.sql"
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                    }
+                }
+            }
+            steps {
+                script {
+                    def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
+                    def backupFile = "db-backup-${timestamp}.sql"
 
-            withCredentials([usernamePassword(credentialsId: 'postgres-creds', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'postgres-creds', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')]) {
 
-                echo "🔄 Backing up current DB to ${backupFile} ..."
-                sh """
-                PGPASSWORD=$DB_PASS pg_dump -h localhost -U $DB_USER -d mydb -f ${backupFile}
-                """
+                        echo "🔄 Backing up current DB to ${backupFile} ..."
+                        sh """
+                        PGPASSWORD=$DB_PASS pg_dump -h localhost -U $DB_USER -d mydb -f ${backupFile}
+                        """
 
-                try {
-                    // Apply DB migrations
-                    sh """
-                    echo "⚙️ Applying create_tables.sql ..."
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_tables.sql
+                        try {
+                            // Apply DB migrations
+                            sh """
+                            echo "⚙️ Applying create_tables.sql ..."
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_tables.sql
 
-                    echo "⚙️ Applying views.sql ..."
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/views.sql
+                            echo "⚙️ Applying views.sql ..."
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/views.sql
 
-                    echo "⚙️ Applying create_stored_procedures.sql ..."
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_stored_procedures.sql
-                    """
+                            echo "⚙️ Applying create_stored_procedures.sql ..."
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f web_app/db/create_stored_procedures.sql
+                            """
 
-                    // Simple test
-                    sh """
-                    echo "✅ Verifying DB deploy ..."
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "\\dt"
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "SELECT * FROM images LIMIT 5;"
-                    echo "✅ DB deploy verification completed."
-                    """
+                            // Simple test
+                            sh """
+                            echo "✅ Verifying DB deploy ..."
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "\\dt"
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -c "SELECT * FROM images LIMIT 5;"
+                            echo "✅ DB deploy verification completed."
+                            """
 
-                } catch (err) {
-                    echo "❌ DB deploy failed — rolling back from ${backupFile} ..."
-                    sh """
-                    PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f ${backupFile}
-                    """
-                    error "DB deploy failed and rolled back."
+                        } catch (err) {
+                            echo "❌ DB deploy failed — rolling back from ${backupFile} ..."
+                            sh """
+                            PGPASSWORD=$DB_PASS psql -h localhost -U $DB_USER -d mydb -f ${backupFile}
+                            """
+                            error "DB deploy failed and rolled back."
+                        }
+                    }
                 }
             }
         }
     }
-}
-}
+
+    post {
+        always {
+            echo "✅ Pipeline completed for branch: ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "❌ Pipeline FAILED for branch: ${env.BRANCH_NAME}"
+        }
+    }
 }
