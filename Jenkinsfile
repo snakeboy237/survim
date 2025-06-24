@@ -23,6 +23,9 @@ pipeline {
         }
 
         stage('Deploy Frontend') {
+    when {
+        changeset "**/web_app/frontend/**"
+    }
     steps {
         script {
             // Stop and remove old container if running
@@ -38,6 +41,7 @@ pipeline {
         }
     }
 }
+
 
 
 
