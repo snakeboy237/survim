@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
-        SONARQUBE_ENV = 'MySonarQube'   // 👈 Jenkins SonarQube server name
+        SONARQUBE_ENV = 'MySonarQube'
         ENABLE_SELENIUM_UI_TESTS = 'true'
-        SELENIUM_TEST_IMAGE = 'selenium-test-image' // example name
+        SELENIUM_TEST_IMAGE = 'selenium-test-image'
     }
 
     stages {
@@ -18,6 +18,12 @@ pipeline {
         }
 
         stage('Static Code Analysis - SonarQube') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:5.0.1'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             when {
                 branch 'main'
             }
