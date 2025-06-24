@@ -22,3 +22,8 @@ CREATE TABLE logs (
     log_message TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE TABLE new (
+    id SERIAL PRIMARY KEY,
+    notes TEXT
+    notessds TEXT
+);
