@@ -25,5 +25,5 @@ CREATE TABLE logs (
 CREATE TABLE new (
     id SERIAL PRIMARY KEY,
     notes TEXT
-    notessds TEXT
+    nddotessds TEXT
 );
