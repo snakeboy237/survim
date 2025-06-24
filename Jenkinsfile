@@ -132,8 +132,7 @@ pipeline {
             when {
                 allOf {
                     anyOf {
-                        changeset "**/web_app/frontend/**"
-                        changeset "**/web_app/selenium-tests/**" 
+            
                     }
                     anyOf {
                         branch 'main'
