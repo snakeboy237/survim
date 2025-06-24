@@ -26,4 +26,5 @@ CREATE TABLE new (
     id SERIAL PRIMARY KEY,
     notes TEXT
     nddotessds TEXT
+    nddotessddds TEXT
 );
