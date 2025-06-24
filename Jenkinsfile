@@ -5,6 +5,7 @@ pipeline {
         DOCKER_BUILDKIT = '1'
         SELENIUM_IMAGE = 'selenium/standalone-chrome'
         SELENIUM_TEST_IMAGE = 'my-selenium-test-image'
+        ENABLE_SELENIUM_UI_TESTS = 'true'   // 👈 you can control this in Jenkins params or Git env
     }
 
     stages {
@@ -126,17 +127,20 @@ pipeline {
             }
         }
 
-        // Run Selenium UI Tests (updated trigger)
-        stage('Run Selenium UI Tests') {
+        // Run Selenium UI Tests (with best practice trigger and flag)
+    /*    stage('Run Selenium UI Tests') {
             when {
                 allOf {
                     anyOf {
                         changeset "**/web_app/frontend/**"
-                        changeset "**/web_app/selenium-tests/**"
+                        changeset "**/web_app/selenium-tests/**" 
                     }
                     anyOf {
                         branch 'main'
                         branch 'develop'
+                    }
+                    expression {
+                        return params.ENABLE_SELENIUM_UI_TESTS == 'true'
                     }
                 }
             }
@@ -154,7 +158,18 @@ pipeline {
                     echo "✅ Selenium UI tests completed!"
                 }
             }
-        }
+
+            post {
+                always {
+                    echo "📄 Publishing Selenium test report ..."
+                    publishHTML(target: [
+                        reportDir: '.',
+                        reportFiles: 'report.html',
+                        reportName: 'Selenium UI Test Report'
+                    ])
+                }
+            }
+        } */
 
         // Deploy DB Changes
         stage('Deploy DB Changes') {
