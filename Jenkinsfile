@@ -44,7 +44,7 @@ pipeline {
                     echo "🧪 Running backend unit tests (Jest)..."
                     sh '''
                     npm install
-                    npm test -- --ci --reporters=jest-junit
+                    npm test -- --ci --reporters=jest-junit --outputFile=junit.xml
                     '''
                 }
             }
@@ -162,28 +162,49 @@ pipeline {
         }
 
         stage('Vulnerability Scan - Trivy') {
-    when {
-        anyOf {
-            changeset "**/web_app/backend-api/**"
-            changeset "**/web_app/frontend/**"
-        }
-    }
-    agent {
-        docker {
-            image 'aquasec/trivy:0.50.1'
-        }
-    }
-    steps {
-        script {
-            echo "🔍 Scanning backend image for vulnerabilities ..."
-            sh 'trivy image --severity CRITICAL,HIGH ai-backend:latest || true'
+            when {
+                anyOf {
+                    changeset "**/web_app/backend-api/**"
+                    changeset "**/web_app/frontend/**"
+                }
+            }
+            agent {
+                docker {
+                    image 'aquasec/trivy:0.50.1'
+                }
+            }
+            steps {
+                script {
+                    echo "🔍 Scanning backend image for vulnerabilities ..."
+                    sh 'trivy image --severity CRITICAL,HIGH ai-backend:latest || true'
 
-            echo "🔍 Scanning frontend image for vulnerabilities ..."
-            sh 'trivy image --severity CRITICAL,HIGH ai-frontend:latest || true'
+                    echo "🔍 Scanning frontend image for vulnerabilities ..."
+                    sh 'trivy image --severity CRITICAL,HIGH ai-frontend:latest || true'
+                }
+            }
         }
-    }
-}
 
+        stage('Push Backend Image') {
+            when {
+                allOf {
+                    branch 'main'
+                    changeset "**/web_app/backend-api/**"
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        echo "🚀 Pushing ai-backend image to DockerHub ..."
+                        sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag ai-backend:latest snakeboy237/ai-backend:latest
+                        docker push snakeboy237/ai-backend:latest
+                        docker logout
+                        """
+                    }
+                }
+            }
+        }
 
         stage('Run Selenium UI Tests') {
             when {
