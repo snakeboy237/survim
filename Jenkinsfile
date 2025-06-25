@@ -21,6 +21,12 @@ pipeline {
             when {
                 branch 'main'
             }
+            agent {
+                docker {
+                    image 'node:18'  // ✅ Node 18 includes NodeJS for Sonar scanner
+                    args '-v $WORKSPACE:/app -w /app'
+                }
+            }
             steps {
                 echo "🔍 Running SonarQube analysis..."
                 withSonarQubeEnv("${env.SONARQUBE_ENV}") {
@@ -45,7 +51,7 @@ pipeline {
                         echo "🧪 Running backend unit tests (Jest)..."
                         sh '''
                         npm install
-                        npm test -- --ci --reporters=jest-junit --outputFile=junit.xml
+                        npx jest --ci --reporters=jest-junit --reporters=default --outputFile=junit.xml
                         '''
                     }
                 }
@@ -53,7 +59,7 @@ pipeline {
             post {
                 always {
                     echo "📄 Publishing Backend Unit Test report ..."
-                    junit 'junit.xml'
+                    junit 'web_app/backend-api/junit.xml'
                 }
             }
         }
@@ -76,6 +82,21 @@ pipeline {
                         sh "docker tag ${imageName}:latest ${imageName}:${buildDate}-${gitSha}"
                     }
                 }
+            }
+        }
+
+        stage('Vulnerability Scan - Trivy (Backend)') {
+            when {
+                changeset "**/web_app/backend-api/**"
+            }
+            agent {
+                docker {
+                    image 'aquasec/trivy:0.50.1'
+                }
+            }
+            steps {
+                echo "🔍 Scanning backend image for vulnerabilities ..."
+                sh 'trivy image --severity CRITICAL,HIGH ai-backend:latest || true'
             }
         }
 
@@ -109,6 +130,28 @@ pipeline {
             }
         }
 
+        stage('Push Backend Image') {
+            when {
+                allOf {
+                    branch 'main'
+                    changeset "**/web_app/backend-api/**"
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        echo "🚀 Pushing ai-backend image to DockerHub ..."
+                        sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag ai-backend:latest snakeboy237/ai-backend:latest
+                        docker push snakeboy237/ai-backend:latest
+                        docker logout
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Build Frontend Image') {
             when {
                 changeset "**/web_app/frontend/**"
@@ -127,6 +170,21 @@ pipeline {
                         sh "docker tag ${imageName}:latest ${imageName}:${buildDate}-${gitSha}"
                     }
                 }
+            }
+        }
+
+        stage('Vulnerability Scan - Trivy (Frontend)') {
+            when {
+                changeset "**/web_app/frontend/**"
+            }
+            agent {
+                docker {
+                    image 'aquasec/trivy:0.50.1'
+                }
+            }
+            steps {
+                echo "🔍 Scanning frontend image for vulnerabilities ..."
+                sh 'trivy image --severity CRITICAL,HIGH ai-frontend:latest || true'
             }
         }
 
@@ -158,51 +216,6 @@ pipeline {
                         docker run -d --name myfrontend -p 8080:80 ai-frontend:previous
                         '''
                         error "Frontend deployment failed and rolled back."
-                    }
-                }
-            }
-        }
-
-        stage('Vulnerability Scan - Trivy') {
-            when {
-                anyOf {
-                    changeset "**/web_app/backend-api/**"
-                    changeset "**/web_app/frontend/**"
-                }
-            }
-            agent {
-                docker {
-                    image 'aquasec/trivy:0.50.1'
-                }
-            }
-            steps {
-                script {
-                    echo "🔍 Scanning backend image for vulnerabilities ..."
-                    sh 'trivy image --severity CRITICAL,HIGH ai-backend:latest || true'
-
-                    echo "🔍 Scanning frontend image for vulnerabilities ..."
-                    sh 'trivy image --severity CRITICAL,HIGH ai-frontend:latest || true'
-                }
-            }
-        }
-
-        stage('Push Backend Image') {
-            when {
-                allOf {
-                    branch 'main'
-                    changeset "**/web_app/backend-api/**"
-                }
-            }
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        echo "🚀 Pushing ai-backend image to DockerHub ..."
-                        sh """
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker tag ai-backend:latest snakeboy237/ai-backend:latest
-                        docker push snakeboy237/ai-backend:latest
-                        docker logout
-                        """
                     }
                 }
             }
