@@ -161,6 +161,30 @@ pipeline {
             }
         }
 
+        stage('Vulnerability Scan - Trivy') {
+    when {
+        anyOf {
+            changeset "**/web_app/backend-api/**"
+            changeset "**/web_app/frontend/**"
+        }
+    }
+    agent {
+        docker {
+            image 'aquasec/trivy:0.50.1'
+        }
+    }
+    steps {
+        script {
+            echo "🔍 Scanning backend image for vulnerabilities ..."
+            sh 'trivy image --severity CRITICAL,HIGH ai-backend:latest || true'
+
+            echo "🔍 Scanning frontend image for vulnerabilities ..."
+            sh 'trivy image --severity CRITICAL,HIGH ai-frontend:latest || true'
+        }
+    }
+}
+
+
         stage('Run Selenium UI Tests') {
             when {
                 allOf {
