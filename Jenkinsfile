@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
-        SONARQUBE_ENV = 'MySonarQube'  // put your SonarQube server name
+        SONARQUBE_ENV = 'MySonarQube'
         ENABLE_SELENIUM_UI_TESTS = 'true'
-        SELENIUM_TEST_IMAGE = 'selenium-tests:latest'  // match your built image name
+        SELENIUM_TEST_IMAGE = 'selenium-tests:latest'
     }
 
     stages {
@@ -33,18 +33,25 @@ pipeline {
             when {
                 changeset "**/web_app/backend-api/**"
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v $WORKSPACE/web_app/backend-api:/app -w /app'
+                }
+            }
             steps {
-                dir('web_app/backend-api') {
+                script {
                     echo "🧪 Running backend unit tests (Jest)..."
                     sh '''
                     npm install
-                    npm run test
+                    npm test -- --ci --reporters=jest-junit
                     '''
                 }
             }
             post {
                 always {
-                    junit 'web_app/backend-api/test-reports/junit.xml'
+                    echo "📄 Publishing Backend Unit Test report ..."
+                    junit 'junit.xml'
                 }
             }
         }
