@@ -40,22 +40,14 @@ pipeline {
                 }
             }
             steps {
-        dir('web_app/backend-api') { // 👈 THIS IS MISSING
-            script {
-                echo "🧪 Running backend unit tests (Jest)..."
-                sh '''
-                npm install
-                npm test -- --ci --reporters=jest-junit
-                '''
-            }
-        }
-            steps {
-                script {
-                    echo "🧪 Running backend unit tests (Jest)..."
-                    sh '''
-                    npm install
-                    npm test -- --ci --reporters=jest-junit --outputFile=junit.xml
-                    '''
+                dir('web_app/backend-api') {
+                    script {
+                        echo "🧪 Running backend unit tests (Jest)..."
+                        sh '''
+                        npm install
+                        npm test -- --ci --reporters=jest-junit --outputFile=junit.xml
+                        '''
+                    }
                 }
             }
             post {
