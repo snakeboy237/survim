@@ -17,17 +17,23 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis - SonarQube') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo "🔍 Running SonarQube analysis..."
-                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                    sh 'sonar-scanner -Dsonar.host.url=http://host.docker.internal:9000'
-                }
-            }
+      stage('Static Code Analysis - SonarQube') {
+    when {
+        branch 'main'
+    }
+    steps {
+        echo "🔍 Running SonarQube analysis..."
+        withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+            sh '''
+            sonar-scanner \
+                -Dsonar.host.url=http://host.docker.internal:9000 \
+                -Dsonar.projectKey=survim \
+                -Dsonar.sources=.
+            '''
         }
+    }
+}
+
 
         stage('Build Backend Image') {
             when {
