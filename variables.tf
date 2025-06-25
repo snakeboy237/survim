@@ -38,8 +38,8 @@ variable "bucket1" {
   description = "Mapping of logical bucket names to real bucket names"
   
   default = {
-     name = "my-survim-temp-image-bucket-12345"
-     region = "ap-south-1"
+     name = "my-survim-temp-image-bucket-1234"
+     region = "us-east-1"
              }
 }
 

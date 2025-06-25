@@ -10,7 +10,7 @@
 # Create Both Buckets 
 resource "aws_s3_bucket" "bucket1" {
   bucket   = var.bucket1
-  provider = aws.ap_south_1
+  provider = aws.use1
   force_destroy = true
   tags = {
     Name        = var.bucket1
@@ -33,7 +33,7 @@ resource "aws_s3_bucket" "bucket2" {
 # Apply encryption to all buckets
 # Encryption for bucket1
 resource "aws_s3_bucket_server_side_encryption_configuration" "bucket1_sse" {
-  provider = aws.ap_south_1
+  provider = aws.use1
   bucket   = aws_s3_bucket.bucket1.id
 
   rule {
@@ -57,7 +57,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "bucket2_sse" {
 
 # Lifecycle for bucket1
 resource "aws_s3_bucket_lifecycle_configuration" "temp_bucket_lifecycle" {
-  provider = aws.ap_south_1
+  provider = aws.use1
   bucket   = aws_s3_bucket.bucket1.id
 
   rule {

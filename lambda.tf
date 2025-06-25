@@ -109,7 +109,7 @@ resource "aws_lambda_function" "s3_to_kafka_lambda" {
 
 # S3 EVENT NOTIFICATION → Trigger Lambda
 resource "aws_s3_bucket_notification" "temp_bucket_notification" {
-  provider = aws.ap_south_1
+ // provider = aws.ap_south_1
   bucket = aws_s3_bucket.bucket1.id # Replace with your bucket name
 
   lambda_function {
