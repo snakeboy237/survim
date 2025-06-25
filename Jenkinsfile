@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         DOCKER_BUILDKIT = '1'
-        SONARQUBE_ENV = 'MySonarQube'
+        SONARQUBE_ENV = 'MySonarQube'  // put your SonarQube server name
         ENABLE_SELENIUM_UI_TESTS = 'true'
-        SELENIUM_TEST_IMAGE = 'selenium-test-image'
+        SELENIUM_TEST_IMAGE = 'selenium-tests:latest'  // match your built image name
     }
 
     stages {
@@ -17,23 +17,37 @@ pipeline {
             }
         }
 
-      stage('Static Code Analysis - SonarQube') {
-    when {
-        branch 'main'
-    }
-    steps {
-        echo "🔍 Running SonarQube analysis..."
-        withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-            sh '''
-            sonar-scanner \
-                -Dsonar.host.url=http://host.docker.internal:9000 \
-                -Dsonar.projectKey=survim \
-                -Dsonar.sources=.
-            '''
+        stage('Static Code Analysis - SonarQube') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "🔍 Running SonarQube analysis..."
+                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                    sh 'sonar-scanner -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.projectKey=survim -Dsonar.sources=.'
+                }
+            }
         }
-    }
-}
 
+        stage('Backend Unit Tests') {
+            when {
+                changeset "**/web_app/backend-api/**"
+            }
+            steps {
+                dir('web_app/backend-api') {
+                    echo "🧪 Running backend unit tests (Jest)..."
+                    sh '''
+                    npm install
+                    npm run test
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit 'web_app/backend-api/test-reports/junit.xml'
+                }
+            }
+        }
 
         stage('Build Backend Image') {
             when {
@@ -55,31 +69,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Backend Unit Tests') {
-    when {
-        changeset "**/web_app/backend-api/**"
-    }
-    steps {
-        dir('web_app/backend-api') {
-            echo "🧪 Running backend unit tests..."
-
-            sh '''
-            docker run --rm \
-                -v $PWD:/app \
-                -w /app \
-                python:3.9-slim \
-                /bin/bash -c "pip install -r requirements.txt && pytest --maxfail=1 --disable-warnings --junitxml=unit-test-report.xml"
-            '''
-        }
-    }
-    post {
-        always {
-            junit 'web_app/backend-api/unit-test-report.xml'
-        }
-    }
-}
-
 
         stage('Deploy Backend') {
             when {
