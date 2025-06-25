@@ -18,12 +18,6 @@ pipeline {
         }
 
         stage('Static Code Analysis - SonarQube') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:5.0.1'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
             when {
                 branch 'main'
             }
