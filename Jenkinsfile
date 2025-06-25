@@ -17,23 +17,23 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis - SonarQube') {
-            when {
-                branch 'main'
-            }
-            agent {
-                docker {
-                    image 'node:18'  // ✅ Node 18 includes NodeJS for Sonar scanner
-                    args '-v $WORKSPACE:/app -w /app'
-                }
-            }
-            steps {
-                echo "🔍 Running SonarQube analysis..."
-                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                    sh 'sonar-scanner -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.projectKey=survim -Dsonar.sources=.'
-                }
-            }
+       stage('Static Code Analysis - SonarQube') {
+    when {
+        branch 'main'
+    }
+    agent {
+        docker {
+            image 'sonarsource/sonar-scanner-cli:5.0.1'
         }
+    }
+    steps {
+        echo "🔍 Running SonarQube analysis..."
+        withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+            sh 'sonar-scanner -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.projectKey=survim -Dsonar.sources=.'
+        }
+    }
+}
+
 
         stage('Backend Unit Tests') {
             when {
