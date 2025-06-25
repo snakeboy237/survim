@@ -24,7 +24,7 @@ pipeline {
             steps {
                 echo "🔍 Running SonarQube analysis..."
                 withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                    sh 'sonar-scanner'
+                    sh 'sonar-scanner -Dsonar.host.url=http://host.docker.internal:9000'
                 }
             }
         }
