@@ -56,6 +56,31 @@ pipeline {
             }
         }
 
+        stage('Backend Unit Tests') {
+    when {
+        changeset "**/web_app/backend-api/**"
+    }
+    steps {
+        dir('web_app/backend-api') {
+            echo "🧪 Running backend unit tests..."
+
+            sh '''
+            docker run --rm \
+                -v $PWD:/app \
+                -w /app \
+                python:3.9-slim \
+                /bin/bash -c "pip install -r requirements.txt && pytest --maxfail=1 --disable-warnings --junitxml=unit-test-report.xml"
+            '''
+        }
+    }
+    post {
+        always {
+            junit 'web_app/backend-api/unit-test-report.xml'
+        }
+    }
+}
+
+
         stage('Deploy Backend') {
             when {
                 allOf {
