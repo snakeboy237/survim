@@ -1,18 +1,76 @@
-# 🧠 AI Image Detection Web App
+# 🧠 AI Image Detection Web App 
 
-This is a full-stack web application that allows users to upload images through a modern frontend. The backend uploads those images to AWS S3 where they can later be processed by AI detection services such as Amazon Rekognition, SageMaker, or any custom inference system.
+A **full-stack AI image processing platform** with:
+
+✅ Modern CI/CD pipeline
+✅ Automated testing & security scanning
+✅ AWS integration
+✅ Built with DevOps best practices
+✅ Docker-native architecture
 
 ---
 
-## 📦 Features
+## ✨ Key Features
 
-- 📤 Image upload via a simple drag-and-drop or button-based UI
-- 🌐 Dockerized **frontend** using Nginx for static serving
-- 🔙 Express-based **backend API** with AWS SDK
-- ☁️ AWS S3 integration for temporary image storage
-- 🐳 Fully containerized for local development or deployment
+* 📤 Image upload via drag & drop or button
+* 🌐 Frontend → Dockerized Nginx static app
+* 🔙 Backend → Node.js/Express + AWS SDK
+* 🛠️ Automated CI/CD pipeline (Jenkins)
+* 🔍 Static code analysis (SonarQube)
+* 🧪 Unit tests (Jest)
+* 🎭 Selenium UI tests
+* 🛡️ Vulnerability scan (Trivy)
+* 📦 Docker images → DockerHub Registry
 
 ---
 
 ## 🧱 Project Structure
+
+
+## ⚙️ CI/CD Pipeline (Jenkins)
+
+✅ Clone repo
+✅ Static code analysis → SonarQube
+✅ Unit testing → Jest (backend)
+✅ Build Docker images → ai-backend & ai-frontend
+✅ Push images → DockerHub
+✅ Vulnerability scan → Trivy
+✅ Run Selenium UI tests
+✅ Deploy containers locally
+✅ Apply database migrations → PostgreSQL
+✅ Full traceability (Git SHA tags, signed images)
+
+---
+
+## 🚀 How It Works
+
+1️⃣ User uploads image → frontend UI
+2️⃣ Backend API receives image → uploads to AWS
+3️⃣ AWS services Rekognition
+4️⃣ Processed results can be displayed in frontend dashboard
+
+---
+
+## 📦 Deployment Targets
+
+| Environment     | URL                                                 |
+| --------------- | --------------------------------------------------- |
+| **Dev** (local) | localhost
+| **Staging**     | localhost    |
+| **Production**  | AWS EKS           |
+
+---
+
+
+## 🙌 Author
+
+**Frank** — Full-Stack Cloud & DevOps Engineer
+*2025 — AI Detection Web Platform*
+
+---
+
+## License
+
+MIT License
+
 
